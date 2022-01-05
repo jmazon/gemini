@@ -59,7 +59,7 @@ Entry
 |]
 
 fetchFromCache :: GeminiURI -> ReaderT SqlBackend IO (Maybe Entry)
-fetchFromCache uri = (fmap.fmap) entityVal $ getBy (UniqueUri uri)
+fetchFromCache uri = fmap entityVal <$> getBy (UniqueUri uri)
 
 insertCache :: GeminiURI -> SuccessType -> Text -> Text -> ReaderT SqlBackend IO Entry
 insertCache uri successType mime payload = do

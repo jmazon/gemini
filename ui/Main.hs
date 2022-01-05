@@ -223,7 +223,7 @@ updateHisButtons browser his = do
 
 -- | Schedule an IO action in the GTK thread.
 toGtk :: IO a -> IO ()
-toGtk a = void $ Gdk.threadsAddIdle GLib.PRIORITY_DEFAULT (a *> pure False)
+toGtk a = void $ Gdk.threadsAddIdle GLib.PRIORITY_DEFAULT (False <$ a)
 
 -- It's not gmiToPango because links are GtkLinkButtons.
 gmiToGtk :: GeminiURI -> Doc -> Gtk.TextView -> (GeminiURI -> IO ()) -> IO ()
@@ -252,7 +252,7 @@ gmiToGtk base Doc {docLines} tv follow = do
       let uriT = Text.pack (uriToString id uri "")
       link <- Gtk.linkButtonNewWithLabel uriT mbDesc
       case validateGeminiURI (uri `relativeTo` unGemini base) of
-        Just gUri -> void $ GI.on link #activateLink $ follow gUri *> pure True
+        Just gUri -> void $ GI.on link #activateLink $ True <$ follow gUri
         Nothing -> pure ()
       #show link
       #addChildAtAnchor tv link anchor

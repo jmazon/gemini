@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 module Lib
     ( request
@@ -120,7 +119,7 @@ request gUri@(GeminiURI uri) = do
   runTLSClient ((tlsClientConfig port host) { tlsClientTLSSettings = TLSSettingsSimple True False False } ) $ \appData -> do
     let queryString = Text.encodeUtf8 (Text.pack (uriToString id uri "\r\n"))
     runConduit $ yield queryString .| appSink appData
-    fmap (const parse (BSC.unpack . BSCL.toStrict)) . runConduit $ appSource appData .| sinkLazy
+    fmap parse . runConduit $ appSource appData .| sinkLazy
 
 parse :: BSCL.ByteString -> Status
 parse bs = case BSCL.uncons bs of

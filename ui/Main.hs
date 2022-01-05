@@ -265,11 +265,11 @@ formatDelta delta
   | delta < 0 = "IN THE FUTURE!!!"
   | otherwise = show (n :: Int) <> " " <> unit <> s <> " ago"
   where
-    (n,unit) | delta < 60 = (secs,"second")
-             | delta < 3600 = (secs `div'` 60,"minute")
-             | delta < 86400 = (secs `div'` 3600,"hour")
-             | delta < 30*86400 = (secs `div'` 86400,"day")
-             | delta < 365*86400 = (secs `div'` (30*86400),"month")
-             | otherwise = (n `div'` (365*86400),"year")
+    (n,unit) | delta <        60 = (secs                  ,"second")
+             | delta <      3600 = (secs `div`         60 ,"minute")
+             | delta <     86400 = (secs `div`       3600 ,"hour")
+             | delta <  30*86400 = (secs `div`      86400 ,"day")
+             | delta < 365*86400 = (secs `div`  (30*86400),"month")
+             | otherwise =         (secs `div` (365*86400),"year")
     secs = round (nominalDiffTimeToSeconds delta)
     s = if n == 1 then "" else "s"

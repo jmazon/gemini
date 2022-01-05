@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -18,7 +20,6 @@ import Control.Monad
 import Control.Monad.Reader
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.ByteString as BS
 import Data.Time
 import Database.Persist
 import Database.Persist.Sql
@@ -64,10 +65,9 @@ insertCache :: GeminiURI -> SuccessType -> Text -> Text -> ReaderT SqlBackend IO
 insertCache uri successType mime payload = do
   cur <- liftIO getCurrentTime
   let val = Entry uri cur successType mime payload
-  upsertBy (UniqueUri uri) val
+  entityVal <$> upsertBy (UniqueUri uri) val
     [ EntryFetchDate =. val ^. entryFetchDate
     , EntrySuccessType =. val ^. entrySuccessType
     , EntryMime =. val ^. entryMime
     , EntryPayload =. val ^. entryPayload
     ]
-  pure val

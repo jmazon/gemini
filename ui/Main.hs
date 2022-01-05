@@ -21,6 +21,8 @@ import Control.Monad.Reader
 import Data.Foldable
 import Data.IORef
 import Data.Text (Text)
+import Data.Time
+import Data.Time.Format.ISO8601
 import qualified Data.Text as Text
 import Database.Persist.Sqlite
 import Network.URI
@@ -90,15 +92,15 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     GI.set urlCb [ #hexpand := True ]
     mapM_ (#appendText urlCb) defaultURLs
     Just entryWdg <- #getChild urlCb
-    Just urlEntry <- GI.castTo Gtk.Entry entryWdg
-    GI.set urlEntry [ #maxWidthChars := -1 ]
+    Just urlEntryGtk <- GI.castTo Gtk.Entry entryWdg
+    GI.set urlEntryGtk [ #maxWidthChars := -1 ]
     #setMnemonicWidget urlLbl (Just urlCb)
     #add urlTiBox urlCb
     -- URL ComboBoxText: if selection “active” changes from selections,
     -- autoactivate
     void $ GI.on urlCb #changed $ do
       newActive <- GI.get urlCb #active
-      when (newActive >= 0) $ void $ #activate urlEntry
+      when (newActive >= 0) $ void $ #activate urlEntryGtk
 
     sw <- GI.new Gtk.ScrolledWindow [ #vexpand := True ]
     #add box sw
@@ -111,16 +113,16 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     buf <- #getBuffer textView
     GI.set buf [ #text := loremIpsum ]
 
-    statusBar <- GI.new Gtk.Statusbar []
-    #add box statusBar
+    statusBarGtk <- GI.new Gtk.Statusbar []
+    #add box statusBarGtk
 
     pure BrowserGtk
       { _window = win
       , _backButton = backBtn
       , _fwdButton = fwdBtn
       , _refreshButton = refreshBtn
-      , _urlEntry = urlEntry
-      , _statusBar = statusBar
+      , _urlEntry = urlEntryGtk
+      , _statusBar = statusBarGtk
       , _textContent = textView
       }
 
@@ -147,7 +149,7 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
                                             , #transientFor := browser ^. gtk . window
                                             , #useHeaderBar := 0
                                             ]
-          #run dialog
+          void (#run dialog)
           #destroy dialog
 
     void $ GI.on (browser ^. gtk . backButton) #clicked $ do
@@ -180,11 +182,16 @@ openLink refresh browser his = forM_ (his ^. current) $ \url ->
         ctx <- #getContextId sb "page"
         #push sb ctx "Non-2x return code"
       Right (fromCache,entry) -> do
+        fc <- if fromCache then do
+               delta <- (`diffUTCTime` (entry ^. entryFetchDate)) <$> getCurrentTime
+               let s = " (fetched " <> iso8601Show (entry ^. entryFetchDate . to utctDay)
+                       <> "—" <> formatDelta delta <> ")"
+               pure (Text.pack s)
+             else pure mempty
         let st = case entry ^. entrySuccessType of
               SuccessOther n -> Text.pack (show n ++ " ")
               _ -> Text.empty
             sz = Text.pack (" " ++ show (Text.length (entry ^. entryPayload)) ++ " chars")
-            fc = if fromCache then " (from cache)" else mempty
             status = st <> entry ^. entryMime <> sz <> fc
             doc = parseDoc (entry ^. entryPayload)
         toGtk $ do
@@ -252,3 +259,17 @@ gmiToGtk base Doc {docLines} tv follow = do
     PreBlock _ preBlock -> do
       esc <- GLib.markupEscapeText (Text.unlines preBlock) (-1)
       #insertMarkup buf iter ("<tt>" <> esc <> "</tt>") (-1)
+
+formatDelta :: NominalDiffTime -> String
+formatDelta delta
+  | delta < 0 = "IN THE FUTURE!!!"
+  | otherwise = show (n :: Int) <> " " <> unit <> s <> " ago"
+  where
+    (n,unit) | delta < 60 = (secs,"second")
+             | delta < 3600 = (secs `div'` 60,"minute")
+             | delta < 86400 = (secs `div'` 3600,"hour")
+             | delta < 30*86400 = (secs `div'` 86400,"day")
+             | delta < 365*86400 = (secs `div'` (30*86400),"month")
+             | otherwise = (n `div'` (365*86400),"year")
+    secs = round (nominalDiffTimeToSeconds delta)
+    s = if n == 1 then "" else "s"

@@ -1,4 +1,4 @@
-* [7/14] TODO
+* [8/14] TODO
 
   - [X] text/gemini parsing
   - [X] text/gemini presentation
@@ -7,7 +7,7 @@
   - [X] follow relative links
   - [X] persistent cache
   - [X] refresh
-  - [ ] cache age status
+  - [X] cache age status
   - [-] actually usable URL entry RU
     - [ ] specify
     - [X] click to go

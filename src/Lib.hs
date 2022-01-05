@@ -8,26 +8,20 @@ module Lib
     , GeminiURI(unGemini)
     ) where
 
-import Debug.Trace
-
 import Control.Applicative
 import Control.Monad
 import Data.Char
-import Data.Coerce
 import Data.List
-import Data.Maybe
 import Text.Read
 
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
-import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Lazy.Char8 as BSCL
 import Data.ByteString.Lens
 
 import Control.Lens
-import Control.Lens.Prism
 
 import Conduit
 import Network.Connection
@@ -124,8 +118,8 @@ request gUri@(GeminiURI uri) = do
       port = gUri ^. guriPort
 
   runTLSClient ((tlsClientConfig port host) { tlsClientTLSSettings = TLSSettingsSimple True False False } ) $ \appData -> do
-    let query = Text.encodeUtf8 (Text.pack (uriToString id uri "\r\n"))
-    runConduit $ yield query .| appSink appData
+    let queryString = Text.encodeUtf8 (Text.pack (uriToString id uri "\r\n"))
+    runConduit $ yield queryString .| appSink appData
     fmap (const parse (BSC.unpack . BSCL.toStrict)) . runConduit $ appSource appData .| sinkLazy
 
 parse :: BSCL.ByteString -> Status
@@ -139,10 +133,13 @@ parse bs = case BSCL.uncons bs of
   Just ('6',r) -> parseCFail r
   Just (s,_) -> ProtocolError UnknownStatus (Just $ "Unknown status class: " <> Text.singleton s)
 
+parseInput :: BSCL.ByteString -> Status
 parseInput = error "parseInput"
 
+defaultMIME :: BSC.ByteString
 defaultMIME = "text/gemini; charset=utf-8"
 
+parseSuccess :: BSCL.ByteString -> Status
 parseSuccess bs = case BSCL.uncons bs of
   Nothing -> ProtocolError IncompleteStatus (Just "2")
   Just (c,r) ->
@@ -152,12 +149,15 @@ parseSuccess bs = case BSCL.uncons bs of
     let t = if c == '0' then SuccessNormal else SuccessOther (digitToInt c)
         (buf,r'') = BSCL.splitAt (1 + 1024 + 2) r
         (fixMeta -> meta,r') = BSCL.break (== '\n') buf
+        mime | BSCL.null meta = defaultMIME
+             | otherwise = BSCL.toStrict meta
     in if BSCL.null r'
          then ProtocolError IncompleteHeader (Just "Missing <CR><LF> at end of header")
        else case Text.decodeUtf8' (BSCL.toStrict (BSCL.tail r' <> r'')) of
               Left e -> ProtocolError DecodingException (Just (Text.pack (show e)))
-              Right b -> Success t (Text.decodeUtf8 (BSCL.toStrict meta)) b
+              Right b -> Success t (Text.decodeUtf8 mime) b
     
+parseRedirect,parseTFail,parsePFail,parseCFail :: BSCL.ByteString -> Status
 parseRedirect = error "parseRedirect"
 parseTFail = error "parseTFail"
 parsePFail = error "parsePFail"

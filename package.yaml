@@ -36,6 +36,9 @@ default-extensions:
 - OverloadedStrings
 - ViewPatterns
 
+ghc-options:
+- -Wall
+
 library:
   source-dirs: src
 

@@ -1,0 +1,83 @@
+name:                gemini
+version:             0.1.0.0
+github:              "githubuser/gemini"
+license:             BSD3
+author:              "Jean-Baptiste Mazon"
+maintainer:          "author"
+copyright:           "© 2021"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/gemini#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- bytestring
+- network-uri
+- network-conduit-tls
+- connection
+- conduit
+- conduit-extra
+- text
+- lens
+- attoparsec
+- time
+
+default-extensions:
+- OverloadedStrings
+- ViewPatterns
+
+library:
+  source-dirs: src
+
+executables:
+  gemini-ui:
+    main:                Main.hs
+    source-dirs:         ui
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - gemini
+    - gi-gtk
+    - haskell-gi-base
+    - gi-glib
+    - gi-gdk
+    - gi-gobject
+    - persistent
+    - persistent-sqlite
+    - monad-logger
+    - mtl
+    default-extensions:
+    - OverloadedLabels
+
+  gemini-client:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - gemini
+
+tests:
+  gemini-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - gemini

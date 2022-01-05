@@ -1,0 +1,6 @@
+.stack-work/
+*~
+gemini.cabal
+gemini.db
+gemini.db-shm
+gemini.db-wal

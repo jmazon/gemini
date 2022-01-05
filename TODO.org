@@ -1,0 +1,16 @@
+* [6/12] TODO
+
+  - [X] text/gemini parsing
+  - [X] text/gemini presentation
+  - [X] follow absolute links
+  - [X] back/forth history
+  - [X] follow relative links
+  - [X] persistent cache
+  - [ ] refresh
+  - [-] actually usable URL entry RU
+    - [ ] specify
+    - [X] click to go
+  - [ ] migrate network-uri to modern-uri
+  - [ ] asynchronous queries
+  - [ ] non-2x return codes
+  - [ ] docnav

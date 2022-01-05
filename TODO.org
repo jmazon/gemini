@@ -1,4 +1,4 @@
-* [6/12] TODO
+* [7/14] TODO
 
   - [X] text/gemini parsing
   - [X] text/gemini presentation
@@ -6,10 +6,12 @@
   - [X] back/forth history
   - [X] follow relative links
   - [X] persistent cache
-  - [ ] refresh
+  - [X] refresh
+  - [ ] cache age status
   - [-] actually usable URL entry RU
     - [ ] specify
     - [X] click to go
+  - [ ] keyboard shortcuts
   - [ ] migrate network-uri to modern-uri
   - [ ] asynchronous queries
   - [ ] non-2x return codes

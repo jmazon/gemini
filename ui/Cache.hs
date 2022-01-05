@@ -64,5 +64,10 @@ insertCache :: GeminiURI -> SuccessType -> Text -> Text -> ReaderT SqlBackend IO
 insertCache uri successType mime payload = do
   cur <- liftIO getCurrentTime
   let val = Entry uri cur successType mime payload
-  insert_ val
+  upsertBy (UniqueUri uri) val
+    [ EntryFetchDate =. val ^. entryFetchDate
+    , EntrySuccessType =. val ^. entrySuccessType
+    , EntryMime =. val ^. entryMime
+    , EntryPayload =. val ^. entryPayload
+    ]
   pure val

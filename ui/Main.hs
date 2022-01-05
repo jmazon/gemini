@@ -152,11 +152,14 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
 
     void $ GI.on (browser ^. gtk . backButton) #clicked $ do
       h <- readIORef (browser ^. history)
-      forM_ (moveBack h) (openLink browser)
+      forM_ (moveBack h) (openLink False browser)
 
     void $ GI.on (browser ^. gtk . fwdButton) #clicked $ do
       h <- readIORef (browser ^. history)
-      forM_ (moveForward h) (openLink browser)
+      forM_ (moveForward h) (openLink False browser)
+
+    void $ GI.on (browser ^. gtk . refreshButton) #clicked $
+      openLink True browser =<< readIORef (browser ^. history)
 
     #showAll (browser ^. gtk . window)
     Gtk.main
@@ -164,12 +167,12 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
 followLink :: Browser -> GeminiURI -> IO ()
 followLink browser url = do
   his' <- push url <$> readIORef (browser ^. history)
-  openLink browser his'
+  openLink False browser his'
 
-openLink :: Browser -> History -> IO ()
-openLink browser his = forM_ (his ^. current) $ \url ->
+openLink :: Bool -> Browser -> History -> IO ()
+openLink refresh browser his = forM_ (his ^. current) $ \url ->
   void $ forkIO $ do
-    runReaderT (fetchLink url) browser >>= \case
+    runReaderT (fetchLink refresh url) browser >>= \case
       Left errMsg -> toGtk $ do
         buf <- #getBuffer (browser ^. gtk . textContent)
         GI.set buf [ #text := errMsg ]
@@ -193,11 +196,11 @@ openLink browser his = forM_ (his ^. current) $ \url ->
           void (#push sb ctx status)
           updateHisButtons browser his
 
-fetchLink :: GeminiURI -> ReaderT Browser IO (Either Text (Bool,Entry))
-fetchLink url =
+fetchLink :: Bool -> GeminiURI -> ReaderT Browser IO (Either Text (Bool,Entry))
+fetchLink refresh url =
   withReaderT _cacheDb (fetchFromCache url) >>= \case
-    Just entry -> pure (Right (True,entry))
-    Nothing ->
+    Just entry | not refresh -> pure (Right (True,entry))
+    _ ->
       liftIO (request url) >>= \case
         Success successType mime payload -> do
           entry <- withReaderT _cacheDb (insertCache url successType mime payload)

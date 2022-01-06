@@ -10,6 +10,7 @@ module Main where
 import Data.GI.Base (AttrOp((:=)))
 import qualified Data.GI.Base as GI
 import qualified GI.GLib as GLib
+import qualified GI.GObject as GO
 import qualified GI.Gdk as Gdk
 import qualified GI.Gtk as Gtk
 
@@ -69,6 +70,10 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     win <- GI.new Gtk.Window [ #title := "Gemini" ]
     void $ GI.on win #destroy Gtk.mainQuit
 
+    ag <- GI.new Gtk.AccelGroup []
+    Gtk.accelMapAddEntry "<Gemini>/Refresh" Gdk.KEY_r [Gdk.ModifierTypeControlMask]
+    #addAccelGroup win ag
+
     box <- GI.new Gtk.Box [ #orientation := Gtk.OrientationVertical ]
     #add win box
 
@@ -81,6 +86,14 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     #add toolbar fwdBtn
     refreshBtn <- GI.new Gtk.ToolButton [ #label := "Refresh", #iconName := "view-refresh", #sensitive := False ]
     #add toolbar refreshBtn
+
+    toolButtonGType <- GO.typeFromName "GtkToolButton"
+    toolButtonClickedSignal <- GO.signalLookup "clicked" toolButtonGType
+    refreshBtnGValue <- GI.toGValue (Just refreshBtn)
+    refreshClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _word32 _mods -> do
+      void (GO.signalEmitv [refreshBtnGValue] toolButtonClickedSignal 0)
+      pure True
+    #connectByPath ag "<Gemini>/Refresh" refreshClosure
 
     urlTi <- GI.new Gtk.ToolItem []
     #add toolbar urlTi

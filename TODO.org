@@ -1,4 +1,4 @@
-* [8/14] TODO
+* [8/18] TODO
 
   - [X] text/gemini parsing
   - [X] text/gemini presentation
@@ -11,8 +11,16 @@
   - [-] actually usable URL entry RU
     - [ ] specify
     - [X] click to go
-  - [ ] keyboard shortcuts
+  - [-] keyboard shortcuts
+    - [X] refresh
+    - [ ] URL
+    - [ ] back/forward
+    - [ ] PgUp/PgDn
   - [ ] migrate network-uri to modern-uri
+  - [ ] search
   - [ ] asynchronous queries
   - [ ] non-2x return codes
   - [ ] docnav
+  - [ ] bookmarks
+  - [ ] history remembers position in document
+  - [ ] tabs

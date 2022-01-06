@@ -8,15 +8,15 @@
   - [X] persistent cache
   - [X] refresh
   - [X] cache age status
-  - [-] actually usable URL entry RU
+  - [-] actually usable URL entry
     - [ ] specify
     - [X] click to go
   - [-] keyboard shortcuts
     - [X] refresh
-    - [ ] URL
-    - [ ] back/forward
+    - [X] URL
+    - [X] back/forward
     - [ ] PgUp/PgDn
-    - [ ] quit
+    - [X] quit
   - [X] migrate network-uri to modern-uri
     - [X] base
     - [X] lenses
@@ -27,3 +27,10 @@
   - [ ] bookmarks
   - [ ] history remembers position in document
   - [ ] tabs
+
+* BUGS
+
+** Haven't managed to bind Alt-left/right
+
+   It's ^B/^F for now.  No visible error, the binding just never
+   appears to trigger the callback (trace-checked).

@@ -68,8 +68,17 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     void $ GI.on win #destroy Gtk.mainQuit
 
     ag <- GI.new Gtk.AccelGroup []
-    Gtk.accelMapAddEntry "<Gemini>/Refresh" Gdk.KEY_r [Gdk.ModifierTypeControlMask]
+    Gtk.accelMapAddEntry "<Gemini>/Back"      Gdk.KEY_b [Gdk.ModifierTypeControlMask]
+    Gtk.accelMapAddEntry "<Gemini>/Forward"   Gdk.KEY_f [Gdk.ModifierTypeControlMask]
+    Gtk.accelMapAddEntry "<Gemini>/Refresh"   Gdk.KEY_r [Gdk.ModifierTypeControlMask]
+    Gtk.accelMapAddEntry "<Gemini>/Focus-URL" Gdk.KEY_l [Gdk.ModifierTypeControlMask]
+    Gtk.accelMapAddEntry "<Gemini>/Quit"      Gdk.KEY_q [Gdk.ModifierTypeControlMask]
     #addAccelGroup win ag
+
+    quitClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _w32 _mods -> do
+      #destroy win
+      pure True
+    #connectByPath ag "<Gemini>/Quit" quitClosure
 
     box <- GI.new Gtk.Box [ #orientation := Gtk.OrientationVertical ]
     #add win box
@@ -78,14 +87,26 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     #add box toolbar
 
     backBtn <- GI.new Gtk.ToolButton [ #label := "Back", #iconName := "go-previous", #sensitive := False ]
+    backBtnGValue <- GI.toGValue (Just backBtn)
+    toolButtonGType <- Gtk.glibType @Gtk.ToolButton
+    (_,toolButtonClickedSignal,tbcDetail) <- GO.signalParseName "clicked" toolButtonGType False
+    backClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _word32 _mods -> do
+      void (GO.signalEmitv [backBtnGValue] toolButtonClickedSignal tbcDetail)
+      pure True
+    #connectByPath ag "<Gemini>/Back" backClosure
     #add toolbar backBtn
+
     fwdBtn <- GI.new Gtk.ToolButton [ #label := "Forward", #iconName := "go-next", #sensitive := False ]
+    forwardBtnGValue <- GI.toGValue (Just fwdBtn)
+    forwardClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _word32 _mods -> do
+      void (GO.signalEmitv [forwardBtnGValue] toolButtonClickedSignal 0)
+      pure True
+    #connectByPath ag "<Gemini>/Forward" forwardClosure
     #add toolbar fwdBtn
+
     refreshBtn <- GI.new Gtk.ToolButton [ #label := "Refresh", #iconName := "view-refresh", #sensitive := False ]
     #add toolbar refreshBtn
 
-    toolButtonGType <- GO.typeFromName "GtkToolButton"
-    toolButtonClickedSignal <- GO.signalLookup "clicked" toolButtonGType
     refreshBtnGValue <- GI.toGValue (Just refreshBtn)
     refreshClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _word32 _mods -> do
       void (GO.signalEmitv [refreshBtnGValue] toolButtonClickedSignal 0)
@@ -105,6 +126,10 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     Just urlEntryGtk <- GI.castTo Gtk.Entry entryWdg
     GI.set urlEntryGtk [ #maxWidthChars := -1 ]
     #setMnemonicWidget urlLbl (Just urlCb)
+    focusUrlClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _w32 _mods -> do
+      #grabFocus urlCb
+      pure True
+    #connectByPath ag "<Gemini>/Focus-URL" focusUrlClosure
     #add urlTiBox urlCb
     -- URL ComboBoxText: if selection “active” changes from selections,
     -- autoactivate

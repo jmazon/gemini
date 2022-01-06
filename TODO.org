@@ -30,7 +30,11 @@
 
 * BUGS
 
-** Haven't managed to bind Alt-left/right
+** DONE Haven't managed to bind Alt-left/right
 
    It's ^B/^F for now.  No visible error, the binding just never
    appears to trigger the callback (trace-checked).
+
+   Explanation: the constant name is Gdk.KEY_Left, not
+   Gdk.KEY_leftarrow.  And don't forget to recyce ghci between
+   keybinding changes!

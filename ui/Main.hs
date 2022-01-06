@@ -68,8 +68,8 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     void $ GI.on win #destroy Gtk.mainQuit
 
     ag <- GI.new Gtk.AccelGroup []
-    Gtk.accelMapAddEntry "<Gemini>/Back"      Gdk.KEY_b [Gdk.ModifierTypeControlMask]
-    Gtk.accelMapAddEntry "<Gemini>/Forward"   Gdk.KEY_f [Gdk.ModifierTypeControlMask]
+    Gtk.accelMapAddEntry "<Gemini>/Back"      Gdk.KEY_Left [Gdk.ModifierTypeMod1Mask]
+    Gtk.accelMapAddEntry "<Gemini>/Forward"   Gdk.KEY_Right [Gdk.ModifierTypeMod1Mask]
     Gtk.accelMapAddEntry "<Gemini>/Refresh"   Gdk.KEY_r [Gdk.ModifierTypeControlMask]
     Gtk.accelMapAddEntry "<Gemini>/Focus-URL" Gdk.KEY_l [Gdk.ModifierTypeControlMask]
     Gtk.accelMapAddEntry "<Gemini>/Quit"      Gdk.KEY_q [Gdk.ModifierTypeControlMask]

@@ -24,15 +24,16 @@ import Data.Time
 import Database.Persist
 import Database.Persist.Sql
 import Database.Persist.TH
-import Network.URI
+import Text.URI
 import Text.Read
+import Text.Megaparsec
 
 import Lib (GeminiURI,validateGeminiURI,SuccessType(..))
 
 instance PersistField GeminiURI where
-  toPersistValue = PersistText . Text.pack . show
+  toPersistValue = PersistText . render . view _Wrapped
   fromPersistValue = maybe (Left (Text.pack "Invalid Gemini URL")) Right .
-                     (validateGeminiURI <=< parseURI . Text.unpack) <=<
+                     (validateGeminiURI <=< parseMaybe @Text parser) <=<
                      fromPersistValueText
 instance PersistFieldSql GeminiURI where sqlType _ = SqlString
 

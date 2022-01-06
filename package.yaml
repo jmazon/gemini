@@ -22,7 +22,6 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - bytestring
-- network-uri
 - network-conduit-tls
 - connection
 - conduit
@@ -31,9 +30,20 @@ dependencies:
 - lens
 - attoparsec
 - time
+- modern-uri
+- megaparsec
 
 default-extensions:
+- DataKinds
+- FlexibleContexts
+- FlexibleInstances
+- LambdaCase
+- MultiParamTypeClasses
+- NamedFieldPuns
 - OverloadedStrings
+- RecordWildCards
+- TypeApplications
+- TypeFamilies
 - ViewPatterns
 
 ghc-options:

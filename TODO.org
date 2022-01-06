@@ -1,4 +1,4 @@
-* [8/18] TODO
+* [9/18] TODO
 
   - [X] text/gemini parsing
   - [X] text/gemini presentation
@@ -16,7 +16,10 @@
     - [ ] URL
     - [ ] back/forward
     - [ ] PgUp/PgDn
-  - [ ] migrate network-uri to modern-uri
+    - [ ] quit
+  - [X] migrate network-uri to modern-uri
+    - [X] base
+    - [X] lenses
   - [ ] search
   - [ ] asynchronous queries
   - [ ] non-2x return codes

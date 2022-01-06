@@ -1,4 +1,5 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Lib
     ( request
     , Status(..)
@@ -10,44 +11,39 @@ module Lib
 import Control.Applicative
 import Control.Monad
 import Data.Char
-import Data.List
-import Text.Read
 
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Lazy.Char8 as BSCL
-import Data.ByteString.Lens
+import qualified Data.ByteString.Builder as BS
+import qualified Data.Text.Strict.Lens as Text
 
 import Control.Lens
 
 import Conduit
 import Network.Connection
-import Network.URI
-import Network.URI.Lens
+import Text.URI (URI,renderBs',mkScheme,RText,RTextLabel(Host))
+import Text.URI.Lens
 import Data.Conduit.Network
 import Data.Conduit.Network.TLS
 
-newtype GeminiURI = GeminiURI { unGemini :: URI } deriving (Eq,Ord)
-instance Show GeminiURI where show (GeminiURI uri) = show uri
+newtype GeminiURI = GeminiURI { unGemini :: URI } deriving (Eq,Ord,Show)
+makeWrapped ''GeminiURI
 
-guriHost :: Lens' GeminiURI BSC.ByteString
-guriHost =
-  coerced . uriAuthorityLens . singular _Just . uriRegNameLens . packedChars
+guriHost :: Lens' GeminiURI (RText 'Host)
+guriHost = _Wrapped . uriAuthority . singular _Right . authHost
 
-guriPort :: Lens' GeminiURI Int
-guriPort =
-  coerced . uriAuthorityLens . singular _Just . uriPortLens .
-  lens (readMaybe <=< stripPrefix ":") (const (maybe "" ((':' :) . show))) .
-  non 1965
+guriPort :: Lens' GeminiURI Word
+guriPort = _Wrapped . uriAuthority . singular _Right . authPort . non 1965
 
 validateGeminiURI :: (Alternative m,MonadFail m) => URI -> m GeminiURI
-validateGeminiURI uri@URI{..} = do
-  guard (uriScheme == "gemini:") <|> fail "uriScheme must be \"gemini:\" (1.2)"
-  URIAuth{..} <- maybe (fail "uriAuthority is mandatory (1.2)") pure uriAuthority
-  guard (null uriUserInfo) <|> fail "URI authority user info is not allowed (1.2)"
-  guard (not (null uriRegName)) <|> fail "URI authority host is required (1.2)"
+validateGeminiURI uri = do
+  guard (uri ^. uriScheme == mkScheme "gemini") <|> fail "uriScheme must be \"gemini\" (1.2)"
+  auth <- maybe (fail "uriAuthority is mandatory (1.2)") pure (uri ^? uriAuthority . _Right)
+  guard (auth ^. authUserInfo . to null) <|> fail "URI authority user info is not allowed (1.2)"
+  guard (auth ^. authHost . unRText . to (not . Text.null)) <|> fail "URI authority host is required (1.2)"
   pure (GeminiURI uri)
 
 data Status =
@@ -113,11 +109,16 @@ data ProtocolErrorType =
   
 request :: GeminiURI -> IO Status
 request gUri@(GeminiURI uri) = do
-  let host = gUri ^. guriHost
-      port = gUri ^. guriPort
+  let host = gUri ^. guriHost . unRText . re Text.utf8
+      port = gUri ^. guriPort . to fromIntegral
 
-  runTLSClient ((tlsClientConfig port host) { tlsClientTLSSettings = TLSSettingsSimple True False False } ) $ \appData -> do
-    let queryString = Text.encodeUtf8 (Text.pack (uriToString id uri "\r\n"))
+      tlsCfg =
+        (tlsClientConfig port host)
+        { tlsClientTLSSettings = TLSSettingsSimple True False False }
+
+  runTLSClient tlsCfg $ \appData -> do
+    let queryString =
+          BS.toLazyByteString (renderBs' uri <> BS.string7 "\r\n") ^. strict
     runConduit $ yield queryString .| appSink appData
     fmap parse . runConduit $ appSource appData .| sinkLazy
 

@@ -1,8 +1,4 @@
-{-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ImplicitParams #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Main where
@@ -26,7 +22,8 @@ import Data.Time
 import Data.Time.Format.ISO8601
 import qualified Data.Text as Text
 import Database.Persist.Sqlite
-import Network.URI
+import Text.URI
+import Text.Megaparsec (parseMaybe)
 
 import Format
 import Lib
@@ -151,7 +148,7 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
     void $ GI.on (browser ^. gtk . urlEntry) #activate $ do
       urlBuf <- GI.get (browser ^. gtk . urlEntry) #buffer
       urlText <- GI.get urlBuf #text
-      case parseURI (Text.unpack urlText) >>= validateGeminiURI of
+      case parseMaybe @Text parser urlText >>= validateGeminiURI of
         Just gUri -> followLink browser gUri
         Nothing -> do
           -- Gtk.messageDialogNew missing from bindings
@@ -209,7 +206,7 @@ openLink refresh browser his = forM_ (his ^. current) $ \url ->
             doc = parseDoc (entry ^. entryPayload)
         toGtk $ do
           urlBuf <- GI.get (browser ^. gtk . urlEntry) #buffer
-          GI.set urlBuf [ #text := Text.pack (show url) ]
+          GI.set urlBuf [ #text := render (url ^. _Wrapped) ]
           gmiToGtk url doc (browser ^. gtk . textContent) (followLink browser)
           let sb = browser ^. gtk . statusBar
           ctx <- #getContextId sb "page"
@@ -262,9 +259,9 @@ gmiToGtk base Doc {docLines} tv follow = do
     LinkLine uri mbDesc -> do
       anchor <- #createChildAnchor buf iter
       #insert buf iter "\n" 1
-      let uriT = Text.pack (uriToString id uri "")
+      let uriT = render uri
       link <- Gtk.linkButtonNewWithLabel uriT mbDesc
-      case validateGeminiURI (uri `relativeTo` unGemini base) of
+      case validateGeminiURI =<< uri `relativeTo` unGemini base of
         Just gUri -> void $ GI.on link #activateLink $ True <$ follow gUri
         Nothing -> pure ()
       #show link

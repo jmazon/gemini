@@ -5,7 +5,8 @@ import Control.Monad
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Network.URI
+import Text.URI
+import Text.Megaparsec (parseMaybe)
 
 data Doc = Doc
   { docLang :: Maybe Text
@@ -61,7 +62,7 @@ parseLink l = fromMaybe (TextLine (SimpleTextLine l)) $ do
   let l' = Text.dropWhile isWhiteSpace l
       (raw,l'') = Text.break isWhiteSpace l'
       mbName = Text.dropWhile isWhiteSpace l''
-  uri <- parseURIReference (Text.unpack raw)
+  uri <- parseMaybe @Text parser raw
   pure (LinkLine uri (guarded (not . Text.null) mbName))
 
 guarded :: Alternative f => (a -> Bool) -> a -> f a

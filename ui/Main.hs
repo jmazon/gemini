@@ -6,7 +6,6 @@ module Main where
 import Data.GI.Base (AttrOp((:=)))
 import qualified Data.GI.Base as GI
 import qualified GI.GLib as GLib
-import qualified GI.GObject as GO
 import qualified GI.Gdk as Gdk
 import qualified GI.Gtk as Gtk
 
@@ -41,7 +40,7 @@ data Browser = Browser
 data BrowserGtk = BrowserGtk
   { _window :: !Gtk.Window
   , _backButton :: !Gtk.ToolButton
-  , _fwdButton :: !Gtk.ToolButton
+  , _forwardButton :: !Gtk.ToolButton
   , _refreshButton :: !Gtk.ToolButton
   , _urlEntry :: !Gtk.Entry
   , _textContent :: !Gtk.TextView
@@ -64,101 +63,64 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
   _gtk <- liftIO $ do
     void $ Gtk.init Nothing
 
-    win <- GI.new Gtk.Window [ #title := "Gemini" ]
-    void $ GI.on win #destroy Gtk.mainQuit
+    builder <- Gtk.builderNewFromFile "gemini.ui"
 
-    ag <- GI.new Gtk.AccelGroup []
-    Gtk.accelMapAddEntry "<Gemini>/Back"      Gdk.KEY_Left [Gdk.ModifierTypeMod1Mask]
-    Gtk.accelMapAddEntry "<Gemini>/Forward"   Gdk.KEY_Right [Gdk.ModifierTypeMod1Mask]
-    Gtk.accelMapAddEntry "<Gemini>/Refresh"   Gdk.KEY_r [Gdk.ModifierTypeControlMask]
-    Gtk.accelMapAddEntry "<Gemini>/Focus-URL" Gdk.KEY_l [Gdk.ModifierTypeControlMask]
-    Gtk.accelMapAddEntry "<Gemini>/Quit"      Gdk.KEY_q [Gdk.ModifierTypeControlMask]
-    #addAccelGroup win ag
+    -- Somehow connecting the signal from glade doesn't work as expected.
+    Just winGO <- #getObject builder "window"
+    Just windowGtk <- GI.castTo Gtk.Window winGO
+    void $ GI.on windowGtk #destroy Gtk.mainQuit
 
+    -- Buttons: no needed actions to bind since Glade, but need their
+    -- reference to connect signals while browsing.
+    Just backButtonGO <- #getObject builder "back-button"
+    Just backButtonGtk <- GI.castTo Gtk.ToolButton backButtonGO
+    Just forwardButtonGO <- #getObject builder "forward-button"
+    Just forwardButtonGtk <- GI.castTo Gtk.ToolButton forwardButtonGO
+    Just refrestButonGO <- #getObject builder "refresh-button"
+    Just refreshButtonGtk <- GI.castTo Gtk.ToolButton refrestButonGO
+
+    -- Quit action: destroy main window
+    Just accelGroupGO <- #getObject builder "accel-group"
+    Just accelGroup <- GI.castTo Gtk.AccelGroup accelGroupGO
+    Gtk.accelMapAddEntry "<Gemini>/Quit" Gdk.KEY_q  [Gdk.ModifierTypeControlMask]
     quitClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _w32 _mods -> do
-      #destroy win
+      #destroy windowGtk
       pure True
-    #connectByPath ag "<Gemini>/Quit" quitClosure
+    #connectByPath accelGroup "<Gemini>/Quit" quitClosure
 
-    box <- GI.new Gtk.Box [ #orientation := Gtk.OrientationVertical ]
-    #add win box
-
-    toolbar <- GI.new Gtk.Toolbar []
-    #add box toolbar
-
-    backBtn <- GI.new Gtk.ToolButton [ #label := "Back", #iconName := "go-previous", #sensitive := False ]
-    backBtnGValue <- GI.toGValue (Just backBtn)
-    toolButtonGType <- Gtk.glibType @Gtk.ToolButton
-    (_,toolButtonClickedSignal,tbcDetail) <- GO.signalParseName "clicked" toolButtonGType False
-    backClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _word32 _mods -> do
-      void (GO.signalEmitv [backBtnGValue] toolButtonClickedSignal tbcDetail)
-      pure True
-    #connectByPath ag "<Gemini>/Back" backClosure
-    #add toolbar backBtn
-
-    fwdBtn <- GI.new Gtk.ToolButton [ #label := "Forward", #iconName := "go-next", #sensitive := False ]
-    forwardBtnGValue <- GI.toGValue (Just fwdBtn)
-    forwardClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _word32 _mods -> do
-      void (GO.signalEmitv [forwardBtnGValue] toolButtonClickedSignal 0)
-      pure True
-    #connectByPath ag "<Gemini>/Forward" forwardClosure
-    #add toolbar fwdBtn
-
-    refreshBtn <- GI.new Gtk.ToolButton [ #label := "Refresh", #iconName := "view-refresh", #sensitive := False ]
-    #add toolbar refreshBtn
-
-    refreshBtnGValue <- GI.toGValue (Just refreshBtn)
-    refreshClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _word32 _mods -> do
-      void (GO.signalEmitv [refreshBtnGValue] toolButtonClickedSignal 0)
-      pure True
-    #connectByPath ag "<Gemini>/Refresh" refreshClosure
-
-    urlTi <- GI.new Gtk.ToolItem []
-    #add toolbar urlTi
-    urlTiBox <- GI.new Gtk.Box []
-    #add urlTi urlTiBox
-    urlLbl <- Gtk.labelNewWithMnemonic (Just "_URL")
-    #add urlTiBox urlLbl
-    urlCb <- Gtk.comboBoxTextNewWithEntry
-    GI.set urlCb [ #hexpand := True ]
+    -- Populate a few links in the URL combo.  That's “bookmarks”
+    -- until they're implemented proper.
+    Just urlCbGO <- #getObject builder "url-cb"
+    Just urlCb <- GI.castTo Gtk.ComboBoxText urlCbGO
     mapM_ (#appendText urlCb) defaultURLs
-    Just entryWdg <- #getChild urlCb
-    Just urlEntryGtk <- GI.castTo Gtk.Entry entryWdg
-    GI.set urlEntryGtk [ #maxWidthChars := -1 ]
-    #setMnemonicWidget urlLbl (Just urlCb)
-    focusUrlClosure <- Gtk.genClosure_AccelGroupActivate $ \_ag _obj _w32 _mods -> do
-      #grabFocus urlCb
-      pure True
-    #connectByPath ag "<Gemini>/Focus-URL" focusUrlClosure
-    #add urlTiBox urlCb
-    -- URL ComboBoxText: if selection “active” changes from selections,
-    -- autoactivate
+
+    -- Entry: just to connect signals
+    Just urlEntryGO <- #getObject builder "url-entry"
+    Just urlEntryGtk <- GI.castTo Gtk.Entry urlEntryGO
+
+    -- URL ComboBoxText: if selection “active” changes from selections, autoactivate
     void $ GI.on urlCb #changed $ do
       newActive <- GI.get urlCb #active
       when (newActive >= 0) $ void $ #activate urlEntryGtk
 
-    sw <- GI.new Gtk.ScrolledWindow [ #vexpand := True ]
-    #add box sw
-    textView <- GI.new Gtk.TextView
-      [ #cursorVisible := False
-      , #editable := False
-      , #wrapMode := Gtk.WrapModeWord
-      ]
-    #add sw textView
-    buf <- #getBuffer textView
+    -- home page filler
+    Just textViewGO <- #getObject builder "body-view"
+    Just textViewGtk <- GI.castTo Gtk.TextView textViewGO
+    buf <- #getBuffer textViewGtk
     GI.set buf [ #text := loremIpsum ]
 
-    statusBarGtk <- GI.new Gtk.Statusbar []
-    #add box statusBarGtk
+    -- Status: just to connect signals
+    Just statusbarGO <- #getObject builder "statusbar"
+    Just statusbarGtk <- GI.castTo Gtk.Statusbar statusbarGO
 
     pure BrowserGtk
-      { _window = win
-      , _backButton = backBtn
-      , _fwdButton = fwdBtn
-      , _refreshButton = refreshBtn
+      { _window = windowGtk
+      , _backButton = backButtonGtk
+      , _forwardButton = forwardButtonGtk
+      , _refreshButton = refreshButtonGtk
       , _urlEntry = urlEntryGtk
-      , _statusBar = statusBarGtk
-      , _textContent = textView
+      , _statusBar = statusbarGtk
+      , _textContent = textViewGtk
       }
 
   his <- liftIO (newIORef emptyHistory)
@@ -191,7 +153,7 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
       h <- readIORef (browser ^. history)
       forM_ (moveBack h) (openLink False browser)
 
-    void $ GI.on (browser ^. gtk . fwdButton) #clicked $ do
+    void $ GI.on (browser ^. gtk . forwardButton) #clicked $ do
       h <- readIORef (browser ^. history)
       forM_ (moveForward h) (openLink False browser)
 
@@ -253,7 +215,7 @@ updateHisButtons :: Browser -> History -> IO ()
 updateHisButtons browser his = do
   writeIORef (browser ^. history) his
   GI.set (browser ^. gtk . backButton) [ #sensitive := not (null (his ^. back)) ]
-  GI.set (browser ^. gtk . fwdButton) [ #sensitive := not (null (his ^. forward)) ]
+  GI.set (browser ^. gtk . forwardButton) [ #sensitive := not (null (his ^. forward)) ]
   GI.set (browser ^. gtk . refreshButton) [ #sensitive := True ]
 
 -- | Schedule an IO action in the GTK thread.

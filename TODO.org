@@ -1,4 +1,4 @@
-* [9/18] TODO
+* [10/20] TODO
 
   - [X] text/gemini parsing
   - [X] text/gemini presentation
@@ -20,13 +20,20 @@
   - [X] migrate network-uri to modern-uri
     - [X] base
     - [X] lenses
-  - [ ] search
-  - [ ] asynchronous queries
+  - [-] docnav
+    - [X] UI
+    - [ ] generation
+    - [ ] wiring
   - [ ] non-2x return codes
-  - [ ] docnav
+  - [ ] asynchronous queries
+  - [ ] search
   - [ ] bookmarks
   - [ ] history remembers position in document
   - [ ] tabs
+  - [ ] general cleanup
+    - [ ] cleanup 1
+    - [ ] cleanup 2
+  - [X] GtkBuilder
 
 * BUGS
 

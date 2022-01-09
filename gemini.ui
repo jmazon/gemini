@@ -3,6 +3,61 @@
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkAccelGroup" id="accel-group"/>
+  <object class="GtkTextTagTable" id="body-tagtable">
+    <child type="tag">
+      <object class="GtkTextTag" id="h1">
+        <property name="name">h1</property>
+        <property name="weight">700</property>
+        <property name="scale">1.4399999999999999</property>
+      </object>
+    </child>
+    <child type="tag">
+      <object class="GtkTextTag" id="h2">
+        <property name="name">h2</property>
+        <property name="weight">700</property>
+        <property name="scale">1.2</property>
+      </object>
+    </child>
+    <child type="tag">
+      <object class="GtkTextTag" id="h3">
+        <property name="name">h3</property>
+        <property name="weight">700</property>
+      </object>
+    </child>
+    <child type="tag">
+      <object class="GtkTextTag" id="li">
+        <property name="name">li</property>
+        <property name="left_margin">25</property>
+        <property name="indent">-10</property>
+      </object>
+    </child>
+    <child type="tag">
+      <object class="GtkTextTag" id="href">
+        <property name="name">href</property>
+        <property name="foreground">blue</property>
+        <property name="underline">single</property>
+      </object>
+    </child>
+    <child type="tag">
+      <object class="GtkTextTag" id="q">
+        <property name="name">q</property>
+        <property name="style">italic</property>
+        <property name="left_margin">40</property>
+      </object>
+    </child>
+    <child type="tag">
+      <object class="GtkTextTag" id="pre">
+        <property name="name">pre</property>
+        <property name="family">monospace</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkTextBuffer" id="body-buffer">
+    <property name="tag_table">body-tagtable</property>
+    <property name="text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit. 
+Ut velit mauris, egestas sed, gravida nec, ornare ut, mi. Aenean ut orci vel massa suscipit pulvinar. Nulla sollicitudin. Fusce varius, ligula non tempus aliquam, nunc turpis ullamcorper nibh, in tempus sapien eros vitae ligula. Pellentesque rhoncus nunc et augue. Integer id felis. Curabitur aliquet pellentesque diam. Integer quis metus vitae elit lobortis egestas. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Morbi vel erat non mauris convallis vehicula. Nulla et sapien. Integer tortor tellus, aliquam faucibus, convallis id, congue eu, quam. Mauris ullamcorper felis vitae erat. Proin feugiat, augue non elementum posuere, metus purus iaculis lectus, et tristique ligula justo vitae magna. 
+Aliquam convallis sollicitudin purus. Praesent aliquam, enim at fermentum mollis, ligula massa adipiscing nisl, ac euismod nibh nisl eu lectus. Fusce vulputate sem at sapien. Vivamus leo. Aliquam euismod libero eu enim. Nulla nec felis sed leo placerat imperdiet. Aenean suscipit nulla in justo. Suspendisse cursus rutrum augue. Nulla tincidunt tincidunt mi. Curabitur iaculis, lorem vel rhoncus faucibus, felis magna fermentum augue, et ultricies lacus lorem varius purus. Curabitur eu amet.</property>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Gemini</property>
@@ -177,9 +232,11 @@
                   <object class="GtkTextView" id="body-view">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="has_tooltip">True</property>
                     <property name="editable">False</property>
                     <property name="wrap_mode">word</property>
                     <property name="cursor_visible">False</property>
+                    <property name="buffer">body-buffer</property>
                   </object>
                 </child>
               </object>

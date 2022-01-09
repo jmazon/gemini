@@ -32,6 +32,9 @@ dependencies:
 - time
 - modern-uri
 - megaparsec
+- extra
+- mtl
+- transformers
 
 default-extensions:
 - DataKinds
@@ -67,10 +70,10 @@ executables:
     - gi-glib
     - gi-gdk
     - gi-gobject
+    - gi-pango
     - persistent
     - persistent-sqlite
     - monad-logger
-    - mtl
     default-extensions:
     - OverloadedLabels
 

@@ -1,4 +1,4 @@
-* [10/20] TODO
+* [13/27] TODO
 
   - [X] text/gemini parsing
   - [X] text/gemini presentation
@@ -8,32 +8,47 @@
   - [X] persistent cache
   - [X] refresh
   - [X] cache age status
-  - [-] actually usable URL entry
-    - [ ] specify
-    - [X] click to go
-  - [-] keyboard shortcuts
+  - [X] actually usable URL entry
+  - [X] keyboard shortcuts
     - [X] refresh
     - [X] URL
     - [X] back/forward
-    - [ ] PgUp/PgDn
     - [X] quit
+  - [X] GtkBuilder
   - [X] migrate network-uri to modern-uri
     - [X] base
     - [X] lenses
+  - [X] style with gtk tags instead of pango markup
+    - [X] most tags
+    - [X] uri tags
+      - [X] styling
+      - [X] tooltip
+      - [X] context menu
   - [-] docnav
     - [X] UI
     - [ ] generation
     - [ ] wiring
+  - [ ] PgUp/PgDn (spacebar) keyboard shortcuts
+  - [ ] uri tags are focusable
   - [ ] non-2x return codes
-  - [ ] asynchronous queries
+  - [-] asynchronous queries
+    - [X] async
+    - [ ] cancellable
+    - [ ] replaceable
   - [ ] search
   - [ ] bookmarks
   - [ ] history remembers position in document
+  - [ ] history remembers formatting
   - [ ] tabs
   - [ ] general cleanup
+    - [ ] much “get post-clic iterator” functionality is duplicated
     - [ ] cleanup 1
     - [ ] cleanup 2
-  - [X] GtkBuilder
+  - [ ] reverse copy-pastability
+    - [ ] basic
+    - [ ] preserving
+  - [ ] link icon (internal/external)
+  - [ ] normalize URLs before they reach the cache
 
 * BUGS
 
@@ -45,3 +60,7 @@
    Explanation: the constant name is Gdk.KEY_Left, not
    Gdk.KEY_leftarrow.  And don't forget to recyce ghci between
    keybinding changes!
+
+** DONE Crash if document parser ends in preformatted mode
+
+   Partial function `tail` was at fault here.

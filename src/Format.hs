@@ -52,7 +52,7 @@ parseDoc = Doc Nothing . go . Text.lines where
     | otherwise = TextLine (SimpleTextLine l) : go ls
 
 parsePre :: [Text] -> ([Text],[Text])
-parsePre = fmap tail . break ("```" `Text.isPrefixOf`)
+parsePre = fmap (drop 1) . break ("```" `Text.isPrefixOf`)
         
 parseAlt :: Text -> Maybe Text
 parseAlt = guarded (not . Text.null) . Text.dropWhile isWhiteSpace

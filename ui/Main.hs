@@ -39,8 +39,15 @@ import Lib
 import Cache
 import History
 
+data HistEntry = HistEntry
+  { _geminiURL :: !GeminiURI
+  , _hadjustment :: !Double
+  , _vadjustment :: !Double
+  }
+makeLenses ''HistEntry
+
 data Browser = Browser
-  { _history :: !(IORef History)
+  { _history :: !(IORef (History HistEntry))
   , _gtk :: !BrowserGtk
   , _cacheDb :: !SqlBackend
   }
@@ -172,12 +179,14 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
           #destroy dialog
 
     void $ GI.on (browser ^. gtk . backButton) #clicked $ do
+      setAdjustments <- adjustmentsFor (browser ^. gtk . textView)
       h <- readIORef (browser ^. history)
-      forM_ (moveBack h) (openGeminiLink False browser)
+      forM_ (moveBack setAdjustments h) (openGeminiLink False browser)
 
     void $ GI.on (browser ^. gtk . forwardButton) #clicked $ do
+      setAdjustments <- adjustmentsFor (browser ^. gtk . textView)
       h <- readIORef (browser ^. history)
-      forM_ (moveForward h) (openGeminiLink False browser)
+      forM_ (moveForward setAdjustments h) (openGeminiLink False browser)
 
     void $ GI.on (browser ^. gtk . refreshButton) #clicked $
       openGeminiLink True browser =<< readIORef (browser ^. history)
@@ -191,12 +200,15 @@ main = runStderrLoggingT $ withSqliteConn "gemini.db" $ \db -> do
 
 followGeminiLink :: Browser -> GeminiURI -> IO ()
 followGeminiLink browser url = do
-  his' <- push url <$> readIORef (browser ^. history)
+  setAdjustments <- adjustmentsFor (browser ^. gtk . textView)
+  let newEntry = HistEntry { _geminiURL = url, _hadjustment = 0, _vadjustment = 0 }
+  his' <- push setAdjustments newEntry <$> readIORef (browser ^. history)
   openGeminiLink False browser his'
 
-openGeminiLink :: Bool -> Browser -> History -> IO ()
-openGeminiLink refresh browser his = forM_ (his ^. current) $ \url ->
+openGeminiLink :: Bool -> Browser -> History HistEntry -> IO ()
+openGeminiLink refresh browser his = forM_ (his ^. current) $ \histEntry ->
   void $ forkIO $ do
+    let url = histEntry ^. geminiURL
     runReaderT (fetchLink refresh url) browser >>= \case
       Left errMsg -> toGtk $ do
         buf <- #getBuffer (browser ^. gtk . textView)
@@ -221,6 +233,7 @@ openGeminiLink refresh browser his = forM_ (his ^. current) $ \url ->
           urlBuf <- GI.get (browser ^. gtk . urlEntry) #buffer
           GI.set urlBuf [ #text := render (url ^. _Wrapped) ]
           gmiToGtk url doc (browser ^. gtk . textView)
+          void $ GLib.idleAdd GLib.PRIORITY_DEFAULT_IDLE $ False <$ restoreHisAdjustments (browser ^. gtk . textView) histEntry
           let sb = browser ^. gtk . statusBar
           ctx <- #getContextId sb "page"
           void (#push sb ctx status)
@@ -237,7 +250,7 @@ fetchLink refresh url =
           pure (Right (False,entry))
         nonSuccess -> pure (Left (Text.pack (show nonSuccess)))
 
-updateHisButtons :: Browser -> History -> IO ()
+updateHisButtons :: Browser -> History HistEntry -> IO ()
 updateHisButtons browser his = do
   writeIORef (browser ^. history) his
   GI.set (browser ^. gtk . backButton) [ #sensitive := not (null (his ^. back)) ]
@@ -246,7 +259,7 @@ updateHisButtons browser his = do
 
 -- | Schedule an IO action in the GTK thread.
 toGtk :: IO a -> IO ()
-toGtk a = void $ Gdk.threadsAddIdle GLib.PRIORITY_DEFAULT (False <$ a)
+toGtk a = void $ GLib.idleAdd GLib.PRIORITY_DEFAULT (False <$ a)
 
 -- It's not gmiToPango because links are GtkLinkButtons.
 gmiToGtk :: GeminiURI -> Doc -> Gtk.TextView -> IO ()
@@ -416,3 +429,16 @@ copyActivate browser uri = do
   clipboardAtom <- Gdk.atomIntern "CLIPBOARD" False
   clipboard <- #getClipboard (browser ^. gtk . textView) clipboardAtom
   #setText clipboard uri (-1)
+
+adjustmentsFor :: Gtk.TextView -> IO (HistEntry -> HistEntry)
+adjustmentsFor tv = do
+  hadj <- GI.get tv #hadjustment >>= \a -> GI.get a #value
+  vadj <- GI.get tv #vadjustment >>= \a -> GI.get a #value
+  pure (set vadjustment vadj . set hadjustment hadj)
+
+restoreHisAdjustments :: Gtk.TextView -> HistEntry -> IO ()
+restoreHisAdjustments tv histEntry = do
+  hadj <- GI.get tv #hadjustment
+  GI.set hadj [ #value := histEntry ^. hadjustment ]
+  vadj <- GI.get tv #vadjustment
+  GI.set vadj [ #value := histEntry ^. vadjustment ]

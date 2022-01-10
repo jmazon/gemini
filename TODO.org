@@ -1,4 +1,4 @@
-* [13/27] TODO
+* [14/27] TODO
 
   - [X] text/gemini parsing
   - [X] text/gemini presentation
@@ -24,6 +24,7 @@
       - [X] styling
       - [X] tooltip
       - [X] context menu
+  - [X] history remembers position in document
   - [-] docnav
     - [X] UI
     - [ ] generation
@@ -37,7 +38,6 @@
     - [ ] replaceable
   - [ ] search
   - [ ] bookmarks
-  - [ ] history remembers position in document
   - [ ] history remembers formatting
   - [ ] tabs
   - [ ] general cleanup

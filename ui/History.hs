@@ -4,44 +4,43 @@
 module History where
 
 import Control.Lens
-import Lib
 
-data History = History
-  { _back    :: ![GeminiURI]
-  , _current :: !(Maybe GeminiURI)
-  , _forward :: ![GeminiURI]
+data History a = History
+  { _back    :: ![a]
+  , _current :: !(Maybe a)
+  , _forward :: ![a]
   }
   deriving Show
 makeLenses ''History
 
-emptyHistory :: History
+emptyHistory :: History a
 emptyHistory = History
   { _back = []
   , _current = Nothing
   , _forward = []
   }
 
-push :: GeminiURI -> History -> History
-push new History{..} = History
-  { _back = maybe id (:) _current _back
+push :: (a -> a) -> a -> History a -> History a
+push adj new History{..} = History
+  { _back = maybe id ((:) . adj) _current _back
   , _current = Just new
   , _forward = []
   }
 
-moveForward :: History -> Maybe History
-moveForward History{..} = do
+moveForward :: (a -> a) -> History a -> Maybe (History a)
+moveForward adj History{..} = do
   (new,next) <- uncons _forward
   pure History
-    { _back = maybe id (:) _current _back
+    { _back = maybe id ((:) . adj) _current _back
     , _current = Just new
     , _forward = next
     }
 
-moveBack :: History -> Maybe History
-moveBack History{..} = do
+moveBack :: (a -> a) -> History a -> Maybe (History a)
+moveBack adj History{..} = do
   (new,prev) <- uncons _back
   pure History
     { _back = prev
     , _current = Just new
-    , _forward = maybe id (:) _current _forward
+    , _forward = maybe id ((:) . adj) _current _forward
     }
